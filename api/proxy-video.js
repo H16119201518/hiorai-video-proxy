@@ -1,6 +1,7 @@
-import ytdl from 'ytdl-core';
+import play from 'play-dl';
 
 export default async function handler(req, res) {
+  // CORS headers para que funcione desde Lovable
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -15,23 +16,24 @@ export default async function handler(req, res) {
 
   const { url } = req.body;
 
-  if (!url || !ytdl.validateURL(url)) {
-    return res.status(400).json({ error: 'Invalid or unsupported URL' });
+  if (!url) {
+    return res.status(400).json({ error: 'Missing URL' });
   }
 
   try {
-    const info = await ytdl.getInfo(url);
-    const formats = ytdl.filterFormats(info.formats, 'videoandaudio');
-    const format = ytdl.chooseFormat(formats, { quality: 'highest' });
-
-    if (!format || !format.url) {
-      return res.status(404).json({ error: 'No video format found' });
+    // Auto-refresh token si expira
+    if (play.is_expired()) {
+      await play.refreshToken();
     }
 
-    res.status(200).json({ videoUrl: format.url });
+    // Extrae el stream directo
+    const streamData = await play.stream(url);
+
+    // Devuelve la URL del vídeo/stream
+    res.status(200).json({ videoUrl: streamData.url });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Unable to fetch video – YouTube blocked or format changed' });
+    res.status(500).json({ error: 'Unable to fetch video – platform blocked or unsupported' });
   }
 }
 
