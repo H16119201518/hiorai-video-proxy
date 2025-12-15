@@ -1,6 +1,14 @@
 import ytdl from 'ytdl-core';
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -14,18 +22,16 @@ export default async function handler(req, res) {
   try {
     const info = await ytdl.getInfo(url);
     const formats = ytdl.filterFormats(info.formats, 'videoandaudio');
-    const bestFormat = formats[0]; // Mejor calidad disponible
+    const format = ytdl.chooseFormat(formats, { quality: 'highest' });
 
-    if (!bestFormat) {
-      return res.status(404).json({ error: 'No suitable video format found' });
+    if (!format || !format.url) {
+      return res.status(404).json({ error: 'No video format found' });
     }
 
-    // Devolvemos la URL directa del vídeo (Vercel la sirve con CORS habilitado)
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.status(200).json({ videoUrl: bestFormat.url });
+    res.status(200).json({ videoUrl: format.url });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Unable to fetch video – try uploading directly' });
+    res.status(500).json({ error: 'Unable to fetch video – YouTube blocked or format changed' });
   }
 }
 
