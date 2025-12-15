@@ -1,0 +1,11 @@
+{
+  "name": "hiorai-video-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "vercel-build": "echo 'No build needed'"
+  },
+  "dependencies": {
+    "ytdl-core": "^4.11.5"
+  }
+}
